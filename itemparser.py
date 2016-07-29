@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup, NavigableString
 #     "-flavour": "*%s*"
 # }
 
+hide_string = "#####&#009;\n\n######&#009;\n\n####&#009;\n\n%s\n\n***\n\n"
+
 def parse_item(page):
     soup = BeautifulSoup(page)
     # Find div with class item-box. Only unique items so far..
@@ -30,7 +32,9 @@ def parse_item(page):
         if line is not "":
             lines.append(line)
         groups.append(lines)
-    return make_string(unique_name, base_item, groups) + "\n\n"
+    item_string = make_string(unique_name, base_item, groups)
+    #return (hide_string % unique_name) + item_string + "\n\n" #Add hiding.. Shows "GGG forum post. Hover to view.".
+    return item_string
 
 def format_text(child):
     if not type(child) == NavigableString and "-value" in child["class"]:
