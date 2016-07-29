@@ -1,29 +1,9 @@
-#TODO - Parse typo's
-#TODO2 - Create more functions (e.g. post building into a function)
-
 import time
 import praw
 import re
 import urllib2
 import signal, sys
-
-# This string is sent by praw to reddit in accordance to the API rules
-user_agent = ("REDDIT Bot v1.4 by /u/USERNAME")
-r = praw.Reddit(user_agent=user_agent)
-
-# Fill in the bot's username and password here
-username = "USERNAME"
-password = "PASSWORD"
-r.login(username, password)
-
-# Fill in the subreddit(s) here. Multisubs are done with + (e.g. MagicTCG+EDH)
-subreddit = r.get_subreddit('INSERT_SUBREDDITS')
-
-# This loads the already parsed comments from a backup text file
-already_done = []
-with open('magictcg_done.txt', 'r') as f:
-    for i in f:
-        already_done.append(i.replace("\n", ""))
+import itemparser as ip
 
 # Function that does all the magic
 def bot_comments():
@@ -31,34 +11,10 @@ def bot_comments():
     sub_comments = subreddit.get_comments()
     for comment in sub_comments:
         ids.append(comment.id)
-        # Checks if the post is not actually the bot itself (since the details say [[CARDNAME]]
+        # Checks if the post is not actually the bot itself (since the details say [[NAME]]
         if comment.id not in already_done and not str(comment.author) == username:
-            # Regex Magic that finds the text encaptured with [[ ]]
-            cards = re.findall("\[\[([^\[\]]*)\]\]", comment.body)
-            reply = ""
-            # Because a comment can only have a max length, limit to only the first 30 requests
-            if len(cards) > 30: cards = cards[0:30]
-            # Set removes any duplicates
-            for i in set(cards):
-                print i
-                i = i.split('/')[0]
-                # Converts obscure characters like AE to a URL-valid text
-                j = urllib2.quote(i.encode('utf-8'))
-                # Checks if a card exists
-                card_id = card_check(i, j)
-                if card_id:
-                    # Builds the post
-                    reply += "[%s](http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=%s&type=card&.jpg)" % (i, card_id)
-                    reply += " - "
-                    reply += "[Gatherer](http://gatherer.wizards.com/Pages/Card/Details.aspx?name=%s)" % j
-                    reply += ", [MagicCards](http://magiccards.info/query?q=!%s)" % j
-                    reply += "\n\n"
-            # If a post was built before, complete it and post it to reddit
+            reply = build_reply(comment.body)
             if reply:
-                reply += "^^Questions? ^^Message ^^/u/CREATOR ^^- ^^Call ^^cards ^^with ^^[[CARDNAME]] ^^- ^^Format: ^^Image ^^- ^^URL ^^to ^^Gatherer"
-                # Possible advice text to advice using "AutocardAnywhere" instead
-                #reply += "\n\n^^^Try ^^^the ^^^browser ^^^plugin ^^^'AutocardAnywhere' ^^^instead ^^^of ^^^the ^^^bot: ^^^Personal ^^^card-links!"
-                # Posting might fail (too long, ban, reddit down etc), so cancel the post and print the error
                 try:
                     comment.reply(reply)
                 except Exception,e: print str(e)
@@ -74,43 +30,62 @@ def bot_submissions():
     for submission in sub_subs:
         sub_ids.append(submission.id)
         if submission.id not in already_done:
-            cards = re.findall("\[\[([^\[\]]*)\]\]", submission.selftext)
-            reply = ""
-            if len(cards) > 30: cards = cards[0:30]
-            for i in set(cards):
-                print i
-                i = i.split('/')[0]
-                j = urllib2.quote(i.encode('utf-8'))
-                card_id = card_check(i, j)
-                if card_id:
-                    reply += "[%s](http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=%s&type=card&.jpg)" % (i, card_id)
-                    reply += " - "
-                    reply += "[Gatherer](http://gatherer.wizards.com/Pages/Card/Details.aspx?name=%s)" % j
-                    reply += ", [MagicCards](http://magiccards.info/query?q=!%s)" % j
-                    reply += "\n\n"
+            reply = build_reply(submission.selftext)
             if reply:
-                reply += "^^Questions? ^^Message ^^/u/xslicer ^^- ^^Call ^^cards ^^with ^^[[CARDNAME]] ^^- ^^Format: ^^Image ^^- ^^URL ^^to ^^Gatherer"
                 try:
                     submission.add_comment(reply)
                 except Exception,e: print str(e)
             already_done.append(submission.id)
     return sub_ids
 
-# Function that checks if the requested card exist and returns the card id (card id is unneccesary 
-# for linking since the gatherer will also link the image with it's name, but this is still valid
-# to check if the card exists).
-def card_check(card, enc_card):
-    try:
-        # Opens the Gatherer page and looks for the card ID with Regex - Replaces & because it breaks URLs
-        page = urllib2.urlopen("http://gatherer.wizards.com/Pages/Card/Details.aspx?name=%s" % enc_card.replace("&", "%26")).read()
-        return re.search("multiverseid=([0-9]*)", page).group(1)
-    except AttributeError:
-        print "ERROR"
-        return False
+def build_reply(text):
+    # Regex Magic that finds the text encaptured with [[ ]]
+    links = re.findall("\[\[([^\[\]]*)\]\]", text)
+    reply = ""
+    if len(links) == 0: return reply
+    
+    # Remove duplicates
+    unique_links = []
+    for i in links: 
+        if i not in unique_links: 
+            unique_links.append(i)
+    # Because a comment can only have a max length, limit to only the first 30 requests
+    if len(unique_links) > 30: unique_links = unique_links[0:30] 
+    for i in unique_links:
+        print i
+        i = i.split('/')[0]
+        # Converts obscure characters like AE to a URL-valid text
+        # j = urllib2.quote(i.encode('utf-8'))
+        link = name_to_link(i)
+        page = get_page(link)
+        if page is not None:
+            reply += "[%s](%s)\n\n" % (i, link)
+            reply += ip.parse_item(page) 
+    reply += "^\(Questions? ^Message ^/u/ha107642 ^- ^Call ^wiki ^pages ^((e.g. items or gems)^) ^with ^[[NAME]])"
+    return reply
+
+# Function that checks if the requested wiki page exists.
+def get_page(link):
+    try:        
+        request = urllib2.Request(link, headers = {"User-Agent": "PoEWiki"})
+        response = urllib2.urlopen(request)
+        return response.read()
+    except urllib2.HTTPError, e:
+        return None
+    except AttributeError, e:
+        print "ERROR: %s" % str(e)
+        return None
+
+def name_to_link(name):
+    # Replace & because it breaks URLs
+    link = name.replace("&", "%26")
+    # Replace " " because that's how URLs are formatted on the wiki.. (probably more rules to that).
+    link = link.replace(" ", "_")
+    return "https://pathofexile.gamepedia.com/%s" % link
 
 # Function that backs up current parsed comments
 def write_done():
-    with open("magictcg_done.txt", "w") as f:
+    with open(parsed_filename, "w") as f:
         for i in already_done:
             f.write(str(i) + '\n')
 
@@ -119,6 +94,33 @@ def signal_handler(signal, frame):
     write_done()
     sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
+
+def read_login_info(filename):
+    with open(filename, 'r') as f:
+        content = f.readlines()
+        return (content[0], content[1])
+
+# This string is sent by praw to reddit in accordance to the API rules
+user_agent = ("REDDIT Bot v1.4 by /u/ha107642")
+r = praw.Reddit(user_agent=user_agent)
+
+username, password = read_login_info('login.txt')
+username = username.strip()
+password = password.strip()
+r.login(username, password)
+
+# Fill in the subreddit(s) here. Multisubs are done with + (e.g. MagicTCG+EDH)
+subreddit = r.get_subreddit('pathofexile')
+
+# This loads the already parsed comments from a backup text file
+already_done = []
+parsed_filename = "parsed_comments.txt"
+try:
+    with open(parsed_filename, 'r+') as f:
+        for i in f:
+            already_done.append(i.replace("\n", ""))
+except IOError:
+    open(parsed_filename, 'a').close()
 
 # Infinite loop that calls the function. The function outputs the post-ID's of all parsed comments.
 # The ID's of parsed comments is compared with the already parsed comments so the list stays clean
