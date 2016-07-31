@@ -5,6 +5,7 @@ import urllib2
 import signal, sys
 import itemparser as ip
 
+
 # Function that does all the magic
 def bot_comments():
     ids = []
@@ -17,16 +18,18 @@ def bot_comments():
             if reply:
                 try:
                     comment.reply(reply)
-                except Exception,e: print str(e)
+                except Exception, e:
+                    print str(e)
             # Add the post to the list of parsed comments
             already_done.append(comment.id)
     # Finally, return the list of parsed comments (seperate from already_done)
     return ids
 
+
 # This function is nearly the same as comment parsing, except it takes submissions (should be combined later)
 def bot_submissions():
     sub_ids = []
-    sub_subs = subreddit.get_new(limit=5) 
+    sub_subs = subreddit.get_new(limit=5)
     for submission in sub_subs:
         sub_ids.append(submission.id)
         if submission.id not in already_done:
@@ -34,39 +37,41 @@ def bot_submissions():
             if reply:
                 try:
                     submission.add_comment(reply)
-                except Exception,e: print str(e)
+                except Exception, e:
+                    print str(e)
             already_done.append(submission.id)
     return sub_ids
 
+
 def bot_messages():
     msg_ids = []
-    msg_messages = r.get_messages(limit = 20)
+    msg_messages = r.get_messages(limit=20)
     for message in msg_messages:
         msg_ids.append(message.id)
         if message.id not in already_done:
             reply = build_reply(message.body)
             if reply:
                 try:
-                    recipient = message.author
-                    subject = "Bot service"
                     message.reply(reply)
-                except Exception,e: print str(e)
+                except Exception, e:
+                    print str(e)
             already_done.append(message.id)
     return msg_ids
+
 
 def build_reply(text):
     # Regex Magic that finds the text encaptured with [[ ]]
     links = re.findall("\[\[([^\[\]]*)\]\]", text)
     reply = ""
     if len(links) == 0: return reply
-    
+
     # Remove duplicates
     unique_links = []
-    for i in links: 
-        if i not in unique_links: 
+    for i in links:
+        if i not in unique_links:
             unique_links.append(i)
     # Because a comment can only have a max length, limit to only the first 30 requests
-    if len(unique_links) > 30: unique_links = unique_links[0:30] 
+    if len(unique_links) > 30: unique_links = unique_links[0:30]
     for i in unique_links:
         print i
         i = i.split('/')[0]
@@ -76,14 +81,15 @@ def build_reply(text):
         page = get_page(link)
         if page is not None:
             reply += "[%s](%s)\n\n" % (i, link)
-            reply += ip.parse_item(page) 
+            reply += ip.parse_item(page)
     reply += "^\(Questions? ^Message ^/u/ha107642 ^- ^Call ^wiki ^pages ^((e.g. items or gems)^) ^with ^[[NAME]])"
     return reply
 
+
 # Function that checks if the requested wiki page exists.
 def get_page(link):
-    try:        
-        request = urllib2.Request(link, headers = {"User-Agent": "PoEWiki"})
+    try:
+        request = urllib2.Request(link, headers={"User-Agent": "PoEWiki"})
         response = urllib2.urlopen(request)
         return response.read()
     except urllib2.HTTPError, e:
@@ -92,6 +98,7 @@ def get_page(link):
         print "ERROR: %s" % str(e)
         return None
 
+
 def name_to_link(name):
     # Replace & because it breaks URLs
     link = name.replace("&", "%26")
@@ -99,22 +106,28 @@ def name_to_link(name):
     link = link.replace(" ", "_")
     return "https://pathofexile.gamepedia.com/%s" % link
 
+
 # Function that backs up current parsed comments
 def write_done():
     with open(parsed_filename, "w") as f:
         for i in already_done:
             f.write(str(i) + '\n')
 
+
 # Function that is called when ctrl-c is pressed. It backups the current parsed comments into a backup file and then quits.
 def signal_handler(signal, frame):
     write_done()
     sys.exit(0)
+
+
 signal.signal(signal.SIGINT, signal_handler)
+
 
 def read_login_info(filename):
     with open(filename, 'r') as f:
         content = f.readlines()
         return (content[0], content[1])
+
 
 # This string is sent by praw to reddit in accordance to the API rules
 user_agent = ("REDDIT Bot v1.4 by /u/ha107642")
@@ -153,6 +166,8 @@ while True:
         if i in ids:
             new_done.append(i)
         if i in sub_ids:
+            new_done.append(i)
+        if i in msg_ids:
             new_done.append(i)
     already_done = new_done[:]
     # Back up the parsed comments to a file
