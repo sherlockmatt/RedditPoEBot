@@ -3,3 +3,5 @@ parsed_comments.txt
 /.vscode
 *.pyc
 /.idea
+test.py
+
