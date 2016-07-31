@@ -38,6 +38,22 @@ def bot_submissions():
             already_done.append(submission.id)
     return sub_ids
 
+def bot_messages():
+    msg_ids = []
+    msg_messages = r.get_messages(limit = 20)
+    for message in msg_messages:
+        msg_ids.append(message.id)
+        if message.id not in already_done:
+            reply = build_reply(message.body)
+            if reply:
+                try:
+                    recipient = message.author
+                    subject = "Bot service"
+                    message = build_reply(message.body)
+                    r.send_message(recipient, subject, message, from_sr=None, captcha=None)
+                except Exception,e: print str(e)
+    return msg_ids
+
 def build_reply(text):
     # Regex Magic that finds the text encaptured with [[ ]]
     links = re.findall("\[\[([^\[\]]*)\]\]", text)
@@ -129,6 +145,8 @@ while True:
     ids = bot_comments()
     time.sleep(5)
     sub_ids = bot_submissions()
+    time.sleep(5)
+    msg_ids = bot_messages()
     new_done = []
     # Checks for both comments and submissions
     for i in already_done:
