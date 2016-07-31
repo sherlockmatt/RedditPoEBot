@@ -9,6 +9,6 @@ Things needed to run this:
 
 ##How to use##
 
-If an Item is mentioned in a post with [[Itemname]] (uniques only) the bot replies in a comment with the stats about that item
+If an Item is mentioned in a post with `[[Itemname]]` (uniques only) the bot replies in a comment with the stats about that item
 
 You can also message the bot directly and it will reply with the formatted item information so you can use it in your post
