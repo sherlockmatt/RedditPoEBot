@@ -51,6 +51,7 @@ def bot_messages():
                     subject = "Bot service"
                     message.reply(reply)
                 except Exception,e: print str(e)
+            already_done.append(message.id)
     return msg_ids
 
 def build_reply(text):
