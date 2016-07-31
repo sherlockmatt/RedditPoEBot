@@ -4,6 +4,7 @@ import re
 import urllib2
 import signal, sys
 import itemparser as ip
+import OAuth2Util
 
 
 # Function that does all the magic
@@ -133,10 +134,11 @@ def read_login_info(filename):
 user_agent = ("REDDIT Bot v1.4 by /u/ha107642")
 r = praw.Reddit(user_agent=user_agent)
 
-username, password = read_login_info('login.txt')
-username = username.strip()
-password = password.strip()
-r.login(username, password)
+# username, password = read_login_info('login.txt')
+# username = username.strip()
+# password = password.strip()
+# r.login(username, password)
+oauth = OAuth2Util.OAuth2Util(r)
 
 # Fill in the subreddit(s) here. Multisubs are done with + (e.g. MagicTCG+EDH)
 subreddit = r.get_subreddit('pathofexile')
@@ -172,4 +174,5 @@ while True:
     already_done = new_done[:]
     # Back up the parsed comments to a file
     write_done()
+    oauth.refresh()
     time.sleep(10)
