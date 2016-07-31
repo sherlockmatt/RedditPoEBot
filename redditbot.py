@@ -49,8 +49,7 @@ def bot_messages():
                 try:
                     recipient = message.author
                     subject = "Bot service"
-                    message = build_reply(message.body)
-                    r.send_message(recipient, subject, message, from_sr=None, captcha=None)
+                    message.reply(reply)
                 except Exception,e: print str(e)
     return msg_ids
 
