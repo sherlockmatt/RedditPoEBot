@@ -6,6 +6,7 @@ Things needed to run this:
 - Python 2.7+ (but < 3.0). https://www.python.org/downloads/
 - praw (pip install praw). https://praw.readthedocs.org/en/latest/
 - Beautiful Soup 4 (pip install beautifulsoup4). https://www.crummy.com/software/BeautifulSoup/
+- OAauth2Util (pip install praw-oauth2util). https://github.com/SmBe19/praw-OAuth2Util
 
 ##How to use##
 
