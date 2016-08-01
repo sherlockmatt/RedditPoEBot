@@ -5,59 +5,57 @@ import urllib2
 import signal, sys
 import itemparser as ip
 import OAuth2Util
+import redis
 
 
-# Function that does all the magic
+# Are comments, submissions and messages really unique among each other?
+# Can a comment and a private message have the same ID?
+def is_parsed(id):
+    return redis.sismember("parsed_comments", comment.id) == 1
+
+def add_parsed(id):
+    return redis.sadd("parsed_comments", id)
+
+
 def bot_comments():
-    ids = []
     sub_comments = subreddit.get_comments()
     for comment in sub_comments:
-        ids.append(comment.id)
-        # Checks if the post is not actually the bot itself (since the details say [[NAME]]
-        if comment.id not in already_done and not str(comment.author) == username:
+        # Checks if the post is not actually the bot itself (since the details say [[NAME]])
+        if not is_parsed(comment.id) and not str(comment.author) == username:
             reply = build_reply(comment.body)
             if reply:
                 try:
                     comment.reply(reply)
                 except Exception, e:
                     print str(e)
-            # Add the post to the list of parsed comments
-            already_done.append(comment.id)
-    # Finally, return the list of parsed comments (seperate from already_done)
-    return ids
+            # Add the post to the set of parsed comments
+            add_parsed(comment.id)
 
 
-# This function is nearly the same as comment parsing, except it takes submissions (should be combined later)
 def bot_submissions():
-    sub_ids = []
     sub_subs = subreddit.get_new(limit=5)
     for submission in sub_subs:
-        sub_ids.append(submission.id)
-        if submission.id not in already_done:
+        if not is_parsed(submission.id):
             reply = build_reply(submission.selftext)
             if reply:
                 try:
                     submission.add_comment(reply)
                 except Exception, e:
                     print str(e)
-            already_done.append(submission.id)
-    return sub_ids
+            add_parsed(submission.id)
 
 
 def bot_messages():
-    msg_ids = []
     msg_messages = r.get_messages(limit=20)
     for message in msg_messages:
-        msg_ids.append(message.id)
-        if message.id not in already_done:
+        if not is_parsed(message.id):
             reply = build_reply(message.body)
             if reply:
                 try:
                     message.reply(reply)
                 except Exception, e:
                     print str(e)
-            already_done.append(message.id)
-    return msg_ids
+            add_parsed(comment.id)
 
 
 def build_reply(text):
@@ -109,10 +107,10 @@ def name_to_link(name):
 
 
 # Function that backs up current parsed comments
-def write_done():
-    with open(parsed_filename, "w") as f:
-        for i in already_done:
-            f.write(str(i) + '\n')
+# def write_done():
+#     with open(parsed_filename, "w") as f:
+#         for i in already_done:
+#             f.write(str(i) + '\n')
 
 
 # Function that is called when ctrl-c is pressed. It backups the current parsed comments into a backup file and then quits.
@@ -124,56 +122,57 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
-def read_login_info(filename):
-    with open(filename, 'r') as f:
-        content = f.readlines()
-        return (content[0], content[1])
+# def read_login_info(filename):
+#     with open(filename, 'r') as f:
+#         content = f.readlines()
+#         return (content[0], content[1])
 
 
 # This string is sent by praw to reddit in accordance to the API rules
-user_agent = ("REDDIT Bot v1.4 by /u/ha107642")
-r = praw.Reddit(user_agent=user_agent)
+# user_agent = ("REDDIT Bot v1.4 by /u/ha107642")
+# r = praw.Reddit(user_agent=user_agent)
 
+redis = redis.StrictRedis(host="localhost")
 # username, password = read_login_info('login.txt')
 # username = username.strip()
 # password = password.strip()
 # r.login(username, password)
-oauth = OAuth2Util.OAuth2Util(r)
-username = r.get_me().name
+# oauth = OAuth2Util.OAuth2Util(r)
+# username = r.get_me().name
 
 # Fill in the subreddit(s) here. Multisubs are done with + (e.g. MagicTCG+EDH)
-subreddit = r.get_subreddit('pathofexile')
+# subreddit = r.get_subreddit('pathofexile')
 
 # This loads the already parsed comments from a backup text file
-already_done = []
-parsed_filename = "parsed_comments.txt"
-try:
-    with open(parsed_filename, 'r+') as f:
-        for i in f:
-            already_done.append(i.replace("\n", ""))
-except IOError:
-    open(parsed_filename, 'a').close()
+# already_done = []
+# parsed_filename = "parsed_comments.txt"
+# try:
+#     with open(parsed_filename, 'r+') as f:
+#         for i in f:
+#             already_done.append(i.replace("\n", ""))
+# except IOError:
+#     open(parsed_filename, 'a').close()
 
 # Infinite loop that calls the function. The function outputs the post-ID's of all parsed comments.
 # The ID's of parsed comments is compared with the already parsed comments so the list stays clean
-# and memory is not increased. It sleeps for 15 seconds to wait for new posts.
+# and memory is not increased. It sleeps for 20 seconds to wait for new posts.
 while True:
-    ids = bot_comments()
+    bot_comments()
     time.sleep(5)
-    sub_ids = bot_submissions()
+    bot_submissions()
     time.sleep(5)
-    msg_ids = bot_messages()
-    new_done = []
-    # Checks for both comments and submissions
-    for i in already_done:
-        if i in ids:
-            new_done.append(i)
-        if i in sub_ids:
-            new_done.append(i)
-        if i in msg_ids:
-            new_done.append(i)
-    already_done = new_done[:]
+    bot_messages()
+    # new_done = []
+    # # Checks for both comments and submissions
+    # for i in already_done:
+    #     if i in ids:
+    #         new_done.append(i)
+    #     if i in sub_ids:
+    #         new_done.append(i)
+    #     if i in msg_ids:
+    #         new_done.append(i)
+    # already_done = new_done[:]
     # Back up the parsed comments to a file
-    write_done()
+    # write_done()
     oauth.refresh()
     time.sleep(10)
