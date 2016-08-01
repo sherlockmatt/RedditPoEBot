@@ -1,0 +1,3 @@
+praw
+beautifulsoup4
+praw-oauth2util==0.3.5

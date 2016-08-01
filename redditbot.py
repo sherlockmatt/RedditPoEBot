@@ -139,6 +139,7 @@ r = praw.Reddit(user_agent=user_agent)
 # password = password.strip()
 # r.login(username, password)
 oauth = OAuth2Util.OAuth2Util(r)
+username = r.get_me().name
 
 # Fill in the subreddit(s) here. Multisubs are done with + (e.g. MagicTCG+EDH)
 subreddit = r.get_subreddit('pathofexile')
