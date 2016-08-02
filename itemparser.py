@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup, NavigableString
 hide_string = "#####&#009;\n\n######&#009;\n\n####&#009;\n\n%s\n\n***\n\n"
 
 def parse_item(page):
-    soup = BeautifulSoup(page)
+    soup = BeautifulSoup(page, "html.parser")
     # Find div with class item-box. Only unique items so far..
     itembox = soup.find("div", { "class": "item-box" })
     if not itembox or "-unique" not in itembox["class"]: return ""
@@ -45,7 +45,7 @@ def format_text(child):
     elif "-mod" in child.parent["class"]: 
         return "#%s" % child.string
     elif "-flavour" in child.parent["class"]: 
-        return "*%s*" % child.string
+        return "*%s*\n>>" % child.string.strip()
     else:
         return child.string
 
