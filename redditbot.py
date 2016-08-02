@@ -10,7 +10,7 @@ import redis
 # Are comments, submissions and messages really unique among each other?
 # Can a comment and a private message have the same ID?
 def is_parsed(id):
-    return redis.sismember("parsed_comments", id) == 1
+    return redis.sismember("parsed_comments", id)
 
 def add_parsed(id):
     return redis.sadd("parsed_comments", id)
