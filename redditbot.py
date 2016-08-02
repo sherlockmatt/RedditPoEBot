@@ -81,8 +81,9 @@ def build_reply(text):
         if page is not None:
             reply += "[%s](%s)\n\n" % (i, link)
             reply += ip.parse_item(page)
-    reply += "^\(Questions? ^Message ^/u/ha107642 ^- ^Call ^wiki ^pages ^((e.g. items or gems)^) ^with ^[[NAME]])"
-    return reply
+    if reply is "": 
+        return None        
+    return reply + "^\(Questions? ^Message ^/u/ha107642 ^- ^Call ^wiki ^pages ^((e.g. items or gems)^) ^with ^[[NAME]])"
 
 
 # Function that checks if the requested wiki page exists.
