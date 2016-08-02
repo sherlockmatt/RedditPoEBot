@@ -34,7 +34,7 @@ def parse_item(page):
         groups.append(lines)
     item_string = make_string(unique_name, base_item, groups)
     #return (hide_string % unique_name) + item_string + "\n\n" #Add hiding.. Shows "GGG forum post. Hover to view.".
-    return item_string
+    return item_string + "\n\n"
 
 def format_text(child):
     if not type(child) == NavigableString and "-value" in child["class"]:

@@ -5,7 +5,7 @@ import urllib2
 import signal, sys
 import itemparser as ip
 import OAuth2Util
-from titlecase import titlecase
+import json
 
 
 # Function that does all the magic
@@ -28,7 +28,6 @@ def bot_comments():
     return ids
 
 
-# This function is nearly the same as comment parsing, except it takes submissions (should be combined later)
 def bot_submissions():
     sub_ids = []
     sub_subs = subreddit.get_new(limit=5)
@@ -79,19 +78,18 @@ def build_reply(text):
     for i in unique_links:
         print i
         i = i.split('/')[0]
-        # Converts obscure characters like AE to a URL-valid text
-        # j = urllib2.quote(i.encode('utf-8'))
-        link = name_to_link(i)
+        name, link = lookup_name(i)
+        if link is None: continue
         page = get_page(link)
-        if page is not None:
-            reply += "[%s](%s)\n\n" % (i, link)
-            reply += ip.parse_item(page)
+        if page is None: continue
+        reply += "[%s](%s)\n\n" % (name, link)
+        reply += ip.parse_item(page)
     if reply is "": 
         return None        
-    return reply + "\n\n^\(Questions? ^Message ^/u/ha107642 ^- ^Call ^wiki ^pages ^((e.g. items or gems)^) ^with ^[[NAME]])"
+    return reply + "^\(Questions? ^Message ^/u/ha107642 ^- ^Call ^wiki ^pages ^((e.g. items or gems)^) ^with ^[[NAME]])"
 
 
-# Function that checks if the requested wiki page exists.
+# Fetches a page and returns the response.
 def get_page(link):
     try:
         request = urllib2.Request(link, headers={"User-Agent": "PoEWiki"})
@@ -104,13 +102,18 @@ def get_page(link):
         return None
 
 
-def name_to_link(name):
-    # Replace & because it breaks URLs
-    link = name.replace("&", "%26")
-    # Replace " " because that's how URLs are formatted on the wiki.. (probably more rules to that).
-    link = titlecase(link.lower())
-    link = link.replace(" ", "_")
-    return "https://pathofexile.gamepedia.com/%s" % link
+def lookup_name(name):
+    name = urllib2.quote(name)
+    search_url = "http://pathofexile.gamepedia.com/api.php?action=opensearch&search=%s" % name
+    response = get_page(search_url)
+    hits = json.loads(response)
+    # opensearch returns a json array in a SoA fashion, 
+    # where arr[0] is the search text, arr[1] matching pages,
+    # arr[2] ??, arr[3] links to the matching pages.
+    # e.g. ["facebreaker",["Facebreaker","FacebreakerUnarmedMoreDamage"],["",""],["http://pathofexile.gamepedia.com/Facebreaker","http://pathofexile.gamepedia.com/FacebreakerUnarmedMoreDamage"]]
+    if len(hits[1]) == 0:
+        return (None, None) # If we did not find anything, return None. 
+    return (hits[1][0], hits[3][0]) # Otherwise, return the first match in a tuple with (name, url).
 
 
 # Function that backs up current parsed comments

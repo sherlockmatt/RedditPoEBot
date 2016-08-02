@@ -7,7 +7,6 @@ Things needed to run this:
 - praw (pip install praw). https://praw.readthedocs.org/en/latest/
 - Beautiful Soup 4 (pip install beautifulsoup4). https://www.crummy.com/software/BeautifulSoup/
 - OAauth2Util (pip install praw-oauth2util). https://github.com/SmBe19/praw-OAuth2Util
-- titlecase (pip install titlecase). https://github.com/ppannuto/python-titlecase
 
 ##How to use##
 
