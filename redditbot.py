@@ -7,7 +7,6 @@ import itemparser as ip
 import OAuth2Util
 import redis
 
-
 # Are comments, submissions and messages really unique among each other?
 # Can a comment and a private message have the same ID?
 def is_parsed(id):
@@ -15,7 +14,6 @@ def is_parsed(id):
 
 def add_parsed(id):
     return redis.sadd("parsed_comments", id)
-
 
 def bot_comments():
     sub_comments = subreddit.get_comments()
@@ -31,7 +29,6 @@ def bot_comments():
             # Add the post to the set of parsed comments
             add_parsed(comment.id)
 
-
 def bot_submissions():
     sub_subs = subreddit.get_new(limit=5)
     for submission in sub_subs:
@@ -44,7 +41,6 @@ def bot_submissions():
                     print str(e)
             add_parsed(submission.id)
 
-
 def bot_messages():
     msg_messages = r.get_messages(limit=20)
     for message in msg_messages:
@@ -56,7 +52,6 @@ def bot_messages():
                 except Exception, e:
                     print str(e)
             add_parsed(comment.id)
-
 
 def build_reply(text):
     # Regex Magic that finds the text encaptured with [[ ]]
@@ -85,7 +80,6 @@ def build_reply(text):
         return None        
     return reply + "^\(Questions? ^Message ^/u/ha107642 ^- ^Call ^wiki ^pages ^((e.g. items or gems)^) ^with ^[[NAME]])"
 
-
 # Function that checks if the requested wiki page exists.
 def get_page(link):
     try:
@@ -98,7 +92,6 @@ def get_page(link):
         print "ERROR: %s" % str(e)
         return None
 
-
 def name_to_link(name):
     # Replace & because it breaks URLs
     link = name.replace("&", "%26")
@@ -106,53 +99,24 @@ def name_to_link(name):
     link = link.replace(" ", "_")
     return "https://pathofexile.gamepedia.com/%s" % link
 
-
-# Function that backs up current parsed comments
-# def write_done():
-#     with open(parsed_filename, "w") as f:
-#         for i in already_done:
-#             f.write(str(i) + '\n')
-
-
 # Function that is called when ctrl-c is pressed. It backups the current parsed comments into a backup file and then quits.
 def signal_handler(signal, frame):
     write_done()
     sys.exit(0)
 
-
 signal.signal(signal.SIGINT, signal_handler)
 
-
-# def read_login_info(filename):
-#     with open(filename, 'r') as f:
-#         content = f.readlines()
-#         return (content[0], content[1])
-
-
 # This string is sent by praw to reddit in accordance to the API rules
-# user_agent = ("REDDIT Bot v1.4 by /u/ha107642")
-# r = praw.Reddit(user_agent=user_agent)
+user_agent = ("REDDIT Bot v1.4 by /u/ha107642")
+r = praw.Reddit(user_agent=user_agent)
 
 redis = redis.StrictRedis(host="localhost")
-# username, password = read_login_info('login.txt')
-# username = username.strip()
-# password = password.strip()
-# r.login(username, password)
-# oauth = OAuth2Util.OAuth2Util(r)
-# username = r.get_me().name
+
+oauth = OAuth2Util.OAuth2Util(r)
+username = r.get_me().name
 
 # Fill in the subreddit(s) here. Multisubs are done with + (e.g. MagicTCG+EDH)
-# subreddit = r.get_subreddit('pathofexile')
-
-# This loads the already parsed comments from a backup text file
-# already_done = []
-# parsed_filename = "parsed_comments.txt"
-# try:
-#     with open(parsed_filename, 'r+') as f:
-#         for i in f:
-#             already_done.append(i.replace("\n", ""))
-# except IOError:
-#     open(parsed_filename, 'a').close()
+subreddit = r.get_subreddit('pathofexile')
 
 # Infinite loop that calls the function. The function outputs the post-ID's of all parsed comments.
 # The ID's of parsed comments is compared with the already parsed comments so the list stays clean
@@ -163,17 +127,5 @@ while True:
     bot_submissions()
     time.sleep(5)
     bot_messages()
-    # new_done = []
-    # # Checks for both comments and submissions
-    # for i in already_done:
-    #     if i in ids:
-    #         new_done.append(i)
-    #     if i in sub_ids:
-    #         new_done.append(i)
-    #     if i in msg_ids:
-    #         new_done.append(i)
-    # already_done = new_done[:]
-    # Back up the parsed comments to a file
-    # write_done()
     oauth.refresh()
     time.sleep(10)
