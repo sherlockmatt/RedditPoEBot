@@ -5,6 +5,7 @@ import urllib2
 import signal, sys
 import itemparser as ip
 import OAuth2Util
+from titlecase import titlecase
 
 
 # Function that does all the magic
@@ -105,6 +106,7 @@ def name_to_link(name):
     # Replace & because it breaks URLs
     link = name.replace("&", "%26")
     # Replace " " because that's how URLs are formatted on the wiki.. (probably more rules to that).
+    link = titlecase(link.lower())
     link = link.replace(" ", "_")
     return "https://pathofexile.gamepedia.com/%s" % link
 
