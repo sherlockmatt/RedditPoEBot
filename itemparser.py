@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup, NavigableString
 hide_string = "#####&#009;\n\n######&#009;\n\n####&#009;\n\n%s\n\n***\n\n"
 
 def parse_item(page):
-    soup = BeautifulSoup(page)
+    soup = BeautifulSoup(page, "html.parser")
     # Find div with class item-box. Only unique items so far..
     itembox = soup.find("div", { "class": "item-box" })
     if not itembox or "-unique" not in itembox["class"]: return ""
@@ -34,7 +34,7 @@ def parse_item(page):
         groups.append(lines)
     item_string = make_string(unique_name, base_item, groups)
     #return (hide_string % unique_name) + item_string + "\n\n" #Add hiding.. Shows "GGG forum post. Hover to view.".
-    return item_string
+    return item_string + "\n\n"
 
 def format_text(child):
     if not type(child) == NavigableString and "-value" in child["class"]:
@@ -45,7 +45,7 @@ def format_text(child):
     elif "-mod" in child.parent["class"]: 
         return "#%s" % child.string
     elif "-flavour" in child.parent["class"]: 
-        return "*%s*" % child.string
+        return "*%s*\n>>" % child.string.strip()
     else:
         return child.string
 
