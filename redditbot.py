@@ -61,12 +61,14 @@ def bot_messages():
     return msg_ids
 
 
-def build_reply(text):
-    # Regex Magic that finds the text encaptured with [[ ]]
-    links = re.findall("\[\[([^\[\]]*)\]\]", text)
-    reply = ""
-    if len(links) == 0: return reply
+# Regex Magic that finds the text encaptured with [[ ]]
+pattern = re.compile("\[\[([^\[\]]*)\]\]")
 
+def build_reply(text):
+    reply = ""
+    if text is None: return reply 
+    links = pattern.findall(text)
+    if len(links) == 0: return reply
     # Remove duplicates
     unique_links = []
     for i in links:
