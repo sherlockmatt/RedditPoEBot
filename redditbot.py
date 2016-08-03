@@ -5,7 +5,6 @@ import urllib2
 import signal, sys
 import itemparser as ip
 import OAuth2Util
-import redis
 import json
 from setup import is_parsed, add_parsed
 
