@@ -1,17 +1,31 @@
-import redis
+import psycopg2
+import os
 
+connection_string = os.environ["DATABASE_URL"]
+db_connection = psycopg2.connect(connection_string)
+db_connection.autocommit = True # So we don't have to write db_connection.commit() after every request.
+db = db_connection.cursor()
 
-redis = redis.StrictRedis(host="localhost")
+db.execute("""create table if not exists parsed_comments 
+(
+    id text primary key,
+    parse_date timestamp with time zone
+)""")
+db.execute("""create table if not exists oauth
+(
+    app_key text,
+    app_secret text,
+    token text,
+    refresh_token text,
+    valid_until text
+)""")
 
-# Pull ini file values from redis.
-app_key = redis.get("app_key")
-app_secret = redis.get("app_secret")
-token = redis.get("token")
-refresh_token = redis.get("refresh_token")
-valid_until = redis.get("valid_until")
+# Pull ini file values from database.
+db.execute("select app_key, app_secret, token, refresh_token, valid_until from oauth")
+values = db.fetchone()
 
-if app_key is None or app_secret is None or token is None or refresh_token is None or valid_until is None:
-    print "Unable to fetch oauth values from redis. Exiting."
+if values is None:
+    print "Unable to fetch oauth values from database. Exiting."
     quit()
 
 # Make the ini file using the values.
@@ -28,7 +42,15 @@ server_mode = True
 token = %s
 refresh_token = %s
 valid_until = %s
-""" % (app_key, app_secret, token, refresh_token, valid_until)
+""" % values
 
 with open("oauth.ini", "w+") as file:
     file.write(contents)
+    
+# Are comments, submissions and messages really unique among each other?
+# Can a comment and a private message have the same ID?
+def is_parsed(id):
+    return db.execute("select exists(select 1 from parsed_comments where id=%s)", (id)).fetchone()
+
+def add_parsed(id):
+    return db.execute("insert into parsed_comments values (%s)", (id))

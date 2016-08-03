@@ -1,0 +1,1 @@
+bot: bash bot_starter.sh

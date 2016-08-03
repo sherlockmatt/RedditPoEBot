@@ -1,0 +1,4 @@
+praw
+beautifulsoup4
+praw-oauth2util
+psycopg2

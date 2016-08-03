@@ -7,14 +7,7 @@ import itemparser as ip
 import OAuth2Util
 import redis
 import json
-
-# Are comments, submissions and messages really unique among each other?
-# Can a comment and a private message have the same ID?
-def is_parsed(id):
-    return redis.sismember("parsed_comments", id)
-
-def add_parsed(id):
-    return redis.sadd("parsed_comments", id)
+from setup import is_parsed, add_parsed
 
 def bot_comments():
     sub_comments = subreddit.get_comments()
@@ -52,7 +45,7 @@ def bot_messages():
                     message.reply(reply)
                 except Exception, e:
                     print str(e)
-            add_parsed(comment.id)
+            add_parsed(message.id)
 
 # Regex Magic that finds the text encaptured with [[ ]]
 pattern = re.compile("\[\[([^\[\]]*)\]\]")
@@ -117,8 +110,6 @@ signal.signal(signal.SIGINT, signal_handler)
 # This string is sent by praw to reddit in accordance to the API rules
 user_agent = ("REDDIT Bot v1.4 by /u/ha107642")
 r = praw.Reddit(user_agent=user_agent)
-
-redis = redis.StrictRedis(host="localhost")
 
 oauth = OAuth2Util.OAuth2Util(r)
 username = r.get_me().name
