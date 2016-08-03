@@ -51,7 +51,7 @@ with open("oauth.ini", "w+") as file:
 # Can a comment and a private message have the same ID?
 def is_parsed(id):
     db.execute("select exists(select 1 from parsed_comments where id=%s)", (id,))
-    return db.fetchone()
+    return db.fetchone()[0]
 
 def add_parsed(id):
     return db.execute("insert into parsed_comments values (%s)", (id,))
