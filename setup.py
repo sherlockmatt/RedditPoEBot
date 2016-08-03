@@ -1,5 +1,6 @@
 import psycopg2
 import os
+from datetime import datetime
 
 connection_string = os.environ["DATABASE_URL"]
 db_connection = psycopg2.connect(connection_string)
@@ -54,4 +55,4 @@ def is_parsed(id):
     return db.fetchone()[0]
 
 def add_parsed(id):
-    return db.execute("insert into parsed_comments values (%s)", (id,))
+    return db.execute("insert into parsed_comments values (%s, %s)", (id,datetime.now()))
