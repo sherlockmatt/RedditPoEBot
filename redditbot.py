@@ -52,7 +52,7 @@ def bot_messages():
                     message.reply(reply)
                 except Exception, e:
                     print str(e)
-            add_parsed(comment.id)
+            add_parsed(message.id)
 
 # Regex Magic that finds the text encaptured with [[ ]]
 pattern = re.compile("\[\[([^\[\]]*)\]\]")
