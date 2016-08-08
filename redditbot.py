@@ -107,13 +107,6 @@ def lookup_name(name):
         return (None, None) # If we did not find anything, return None. 
     return (hits[1][0], hits[3][0]) # Otherwise, return the first match in a tuple with (name, url).
 
-# Function that is called when ctrl-c is pressed. It backups the current parsed comments into a backup file and then quits.
-def signal_handler(signal, frame):
-    write_done()
-    sys.exit(0)
-
-signal.signal(signal.SIGINT, signal_handler)
-
 # This string is sent by praw to reddit in accordance to the API rules
 user_agent = ("REDDIT Bot v1.4 by /u/ha107642")
 r = praw.Reddit(user_agent=user_agent)
