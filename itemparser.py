@@ -3,7 +3,8 @@ from bs4 import BeautifulSoup, NavigableString
 # styles = {
 #     "-mod": "#%s",
 #     "-value": "**%s**",
-#     "-flavour": "*%s*"
+#     "-flavour": "*%s*",
+#     "-corrupted": "%s"
 # }
 
 hide_string = "#####&#009;\n\n######&#009;\n\n####&#009;\n\n%s\n\n***\n\n"
@@ -24,7 +25,9 @@ def parse_item(page):
         lines = []
         line = ""
         for child in group.children:
-            if unicode(child) == '<br/>':
+            if not unicode(child).strip():
+                continue #Ignore whitespace lines.
+            elif unicode(child) == '<br/>':
                 lines.append(line)
                 line = ""
             else: 
@@ -37,11 +40,11 @@ def parse_item(page):
     return item_string + "\n\n"
 
 def format_text(child):
-    if not type(child) == NavigableString and "-value" in child["class"]:
-        #if type(child.next) == NavigableString:
+    if not type(child) == NavigableString:
+        if "-value" in child["class"]:
             return "**%s**" % child.string
-        #elif "-mod" in child.next["class"]:
-            #return "#%s" % child.string
+        elif "-corrupted" in child["class"]:
+            return child.string
     elif "-mod" in child.parent["class"]: 
         return "#%s" % child.string
     elif "-flavour" in child.parent["class"]: 
@@ -60,4 +63,4 @@ def make_string(name, base, groups):
         s = s[:-13]
     return s
 
-# parse_item(open("C:\urltext.txt", "r").read())
+# parse_item(open("asdf.txt", "r").read())
