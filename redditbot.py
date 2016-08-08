@@ -8,6 +8,8 @@ import OAuth2Util
 import redis
 import json
 
+footer_text = u"---\n\n^^Questions? ^^Message ^^/u/ha107642 ^^\u2014 ^^Call ^^wiki ^^pages ^^\\(e.g. ^^items ^^or ^^gems)) ^^with ^^[[NAME]] ^^\u2014 ^^I ^^will ^^only ^^post ^^panels ^^for ^^*unique* ^^items ^^\u2014 ^^[Github](https://github.com/ha107642/RedditPoEBot/)\n"
+
 # Are comments, submissions and messages really unique among each other?
 # Can a comment and a private message have the same ID?
 def is_parsed(id):
@@ -71,7 +73,6 @@ def build_reply(text):
     if len(unique_links) > 30: unique_links = unique_links[0:30]
     for i in unique_links:
         print i
-        i = i.split('/')[0]
         name, link = lookup_name(i)
         if link is None: continue
         page = get_page(link)
@@ -80,7 +81,7 @@ def build_reply(text):
         reply += ip.parse_item(page)
     if reply is "": 
         return None        
-    return reply + "^\(Questions? ^Message ^/u/ha107642 ^- ^Call ^wiki ^pages ^((e.g. items or gems)^) ^with ^[[NAME]])"
+    return reply + footer_text
 
 # Fetches a page and returns the response.
 def get_page(link):
