@@ -31,7 +31,7 @@ def parse_item(page):
                 lines.append(line)
                 line = ""
             else: 
-                line += format_text(child)
+                line += format_text(child) or ""
         if line is not "":
             lines.append(line)
         groups.append(lines)
