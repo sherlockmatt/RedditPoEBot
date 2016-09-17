@@ -40,14 +40,24 @@ def parse_item(page):
     return item_string + "\n\n"
 
 def format_text(child):
-    if not type(child) == NavigableString:
-        if "-value" in child["class"]:
-            return "**%s**" % child.string
-        elif "-corrupted" in child["class"]:
-            return child.string
-    elif "-mod" in child.parent["class"]: 
+    if type(child) == NavigableString:
+        classes = child.parent["class"]
+    else:
+        classes = child["class"]
+
+    if "-value" in classes:
+        return "**%s**" % child.string
+    elif "-corrupted" in classes:
+        return child.string
+    elif "-fire" in classes:
+        return child.string #Should be red, but not possible.
+    elif "-cold" in classes:
+        return child.string #Should be blue, but not possible.
+    elif "-lightning" in classes:
+        return child.string #Should be yellow, but not possible.
+    elif "-mod" in classes: 
         return "#%s" % child.string
-    elif "-flavour" in child.parent["class"]: 
+    elif "-flavour" in classes: 
         return "*%s*\n>>" % child.string.strip()
     else:
         return child.string

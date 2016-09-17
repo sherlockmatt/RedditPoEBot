@@ -128,7 +128,7 @@ subreddit = r.get_subreddit('pathofexile')
 
 # Infinite loop that calls the function. The function outputs the post-ID's of all parsed comments.
 # The ID's of parsed comments is compared with the already parsed comments so the list stays clean
-# and memory is not increased. It sleeps for 20 seconds to wait for new posts.
+# and memory is not increased. It sleeps for 15 seconds to wait for new posts.
 while True:
     bot_comments()
     time.sleep(5)
@@ -136,4 +136,4 @@ while True:
     time.sleep(5)
     bot_messages()
     oauth.refresh()
-    time.sleep(10)
+    time.sleep(5)
