@@ -61,9 +61,9 @@ pattern = re.compile("\[\[([^\[\]]*)\]\]")
 
 def build_reply(text):
     reply = ""
-    if text is None: return reply 
+    if text is None: return None 
     links = pattern.findall(text)
-    if len(links) == 0: return reply
+    if len(links) == 0: return None
     # Remove duplicates
     unique_links = []
     for i in links:
@@ -75,6 +75,8 @@ def build_reply(text):
         print i
         name, link = lookup_name(i)
         if link is None: continue
+        specific_name, panel = get_item_panel(name)
+        ip.parse_item2(panel)
         page = get_page(link)
         if page is None: continue
         reply += "[%s](%s)\n\n" % (name, link)
@@ -95,6 +97,26 @@ def get_page(link):
         print "ERROR: %s" % str(e)
         return None
 
+# The input name might differ from what we return as name.
+# E.g. input "Vessel of Vinktar" may return "Vessel of Vinktar (Added Lightning Damage to Attacks)",
+# since there are several versions of Vessel of Vinktar. 
+def get_item_panel(name):
+    name = urllib2.quote(name)
+    url = "https://pathofexile.gamepedia.com/api.php?action=askargs&conditions=Has%%20name::%s&printouts=Has%%20infobox%%20HTML&format=json" % name
+    response = get_page(url)
+    jsonData = json.loads(response)
+    if "query" not in jsonData:
+        return (None, None)
+    pageList = jsonData["query"]["results"]
+    if not pageList:
+        return (None, None)
+    for key, item in pageList.iteritems():
+        infobox = item["printouts"]["Has infobox HTML"]
+        for html in infobox:
+            if html is not None:
+                return (key, html)
+    return (None, None)
+
 def lookup_name(name):
     name = urllib2.quote(name)
     search_url = "http://pathofexile.gamepedia.com/api.php?action=opensearch&search=%s" % name
@@ -112,28 +134,32 @@ def signal_handler(signal, frame):
     redis.save()
     sys.exit(0)
 
-signal.signal(signal.SIGINT, signal_handler)
+get_item_panel("Facebreaker")
 
-# This string is sent by praw to reddit in accordance to the API rules
-user_agent = ("REDDIT Bot v1.4 by /u/ha107642")
-r = praw.Reddit(user_agent=user_agent)
+# Only run the following if we are actually executing this file directly.
+if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)
 
-redis = redis.StrictRedis(host="localhost")
+    # This string is sent by praw to reddit in accordance to the API rules
+    user_agent = ("REDDIT Bot v1.4 by /u/ha107642")
+    r = praw.Reddit(user_agent=user_agent)
 
-oauth = OAuth2Util.OAuth2Util(r)
-username = r.get_me().name
+    redis = redis.StrictRedis(host="localhost")
 
-# Fill in the subreddit(s) here. Multisubs are done with + (e.g. MagicTCG+EDH)
-subreddit = r.get_subreddit('pathofexile')
+    oauth = OAuth2Util.OAuth2Util(r)
+    username = r.get_me().name
 
-# Infinite loop that calls the function. The function outputs the post-ID's of all parsed comments.
-# The ID's of parsed comments is compared with the already parsed comments so the list stays clean
-# and memory is not increased. It sleeps for 15 seconds to wait for new posts.
-while True:
-    bot_comments()
-    time.sleep(5)
-    bot_submissions()
-    time.sleep(5)
-    bot_messages()
-    oauth.refresh()
-    time.sleep(5)
+    # Fill in the subreddit(s) here. Multisubs are done with + (e.g. MagicTCG+EDH)
+    subreddit = r.get_subreddit('pathofexile')
+
+    # Infinite loop that calls the function. The function outputs the post-ID's of all parsed comments.
+    # The ID's of parsed comments is compared with the already parsed comments so the list stays clean
+    # and memory is not increased. It sleeps for 15 seconds to wait for new posts.
+    while True:
+        bot_comments()
+        time.sleep(5)
+        bot_submissions()
+        time.sleep(5)
+        bot_messages()
+        oauth.refresh()
+        time.sleep(5)
