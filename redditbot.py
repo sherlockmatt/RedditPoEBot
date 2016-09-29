@@ -75,12 +75,18 @@ def build_reply(text):
         print i
         name, link = lookup_name(i)
         if link is None: continue
-        specific_name, panel = get_item_panel(name)
-        ip.parse_item2(panel)
-        page = get_page(link)
-        if page is None: continue
-        reply += "[%s](%s)\n\n" % (name, link)
-        reply += ip.parse_item(page)
+        specific_name, panel = get_item_panel(name) # Try the new version first
+        if panel is not None:                
+            if specific_name != name:
+                reply += "[%s](%s) *(Showing %s)*\n\n" % (name, link, specific_name)
+            else:
+                reply += "[%s](%s)\n\n" % (name, link)
+            reply += ip.parse_item2(panel)
+        else: # Fallback to old version
+            page = get_page(link)
+            if page is None: continue
+            reply += "[%s](%s)\n\n" % (name, link)
+            reply += ip.parse_item(page)
     if reply is "": 
         return None        
     return reply + footer_text

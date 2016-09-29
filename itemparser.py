@@ -1,4 +1,5 @@
-from bs4 import BeautifulSoup, NavigableString
+from bs4 import BeautifulSoup, NavigableString, Tag
+import re
 
 # styles = {
 #     "-mod": "#%s",
@@ -9,38 +10,16 @@ from bs4 import BeautifulSoup, NavigableString
 
 hide_string = "#####&#009;\n\n######&#009;\n\n####&#009;\n\n%s\n\n***\n\n"
 
-
-# <span class="item-box -unique">
-#   <span class="header -double">Sire of Shards<br>Serpentine Staff</span>
-#   <span class="item-stats">
-#     <span class="group">
-#       <em class="tc -default">Staves</em><br>
-#       <em class="tc -default">Physical Damage: </em><em class="tc -value"><em class="tc -value">46</em>&ndash;<em class="tc -value">95</em></em><br>
-#       <em class="tc -default">Critical Strike Chance: </em><em class="tc -value"><em class="tc -value">6.40%</em></em><br>
-#       <em class="tc -default">Attacks per Second: </em><em class="tc -value"><em class="tc -value">1.20</em></em>
-#     </span>
-#     <span class="group">
-#       <em class="tc -default">Requires </em><em class="tc -default">Level </em><em class="tc -value">49</em><em class="tc -default">, </em><em class="tc -value"><em class="tc -value">85</em></em><em class="tc -default"> Str</em><em class="tc -default">, </em><em class="tc -value"><em class="tc -value">85</em></em><em class="tc -default"> Int</em>
-#     </span>
-#     <span class="group tc -mod">18% Chance to [[Block]]</span>
-#     <span class="group tc -mod">+(15-20) to all Attributes<br>
-#       +(5-7)% to all [[Elemental Resistance|Elemental Resistances]]<br>
-#       (60-100)% increased Projectile Damage<br>
-#       20% increased Light Radius<br>
-#       [[Item socket|Socketed]] Gems fire 4 additional Projectiles<br>
-#       [[Item socket|Socketed]] Gems fire Projectiles in a Nova</span>
-#     <span class="group -textwrap tc -flavour">That which was broken may yet break.</span>
-#   </span>
-# </span>
-
 def parse_item2(panel):
+    panel = panel.replace("<br>", "<br/>") #BeautifulSoup does not seem to correctly parse <br>, so we add the /.
+    panel = fix_wiki_links(panel)
     soup = BeautifulSoup(panel, "html.parser")
     # Find div with class item-box. Only unique items so far..
     itembox = soup.find("span", { "class": "item-box" })
     if not itembox or "-unique" not in itembox["class"]: return ""
     header = itembox.find("span", { "class": "header" })
     unique_name = str(header.children.next())
-    base_item = header.children.next().next.text
+    base_item = unicode(header.children.next().next.next)
     
     unparsed_groups = itembox.find("span", { "class": "item-stats" }).find_all("span", { "class": "group" })
     
@@ -48,14 +27,14 @@ def parse_item2(panel):
     for group in unparsed_groups:
         lines = []
         line = ""
-        for child in group.children:
+        for child in flatten(group.extract()):
             if not unicode(child).strip():
                 continue #Ignore whitespace lines.
             elif unicode(child) == '<br/>':
                 lines.append(line)
                 line = ""
             else: 
-                line += format_text(child) or ""
+                line += format_text(child, line == "") or ""
         if line is not "":
             lines.append(line)
         groups.append(lines)
@@ -63,6 +42,40 @@ def parse_item2(panel):
     #return (hide_string % unique_name) + item_string + "\n\n" #Add hiding.. Shows "GGG forum post. Hover to view.".
     return item_string + "\n\n"
 
+pattern = re.compile("\[\[([^\[\]]*)\]\]")
+def fix_wiki_links(panel):
+    return pattern.sub(build_link, panel)
+
+def build_link(match):
+    content = match.group(1)
+    split = content.split("|")
+    link = split[0]
+    text = split[len(split) - 1] #The last element, either 0 or 1.
+    #Do I want to build a link here..?
+    return text
+
+def flatten(tag):
+    next = tag.next_element
+    count = len(tag.contents)
+    while tag is not None:
+        if (type(next) == NavigableString and count == 1):
+            yield tag
+            (tag, next, count) = get_next(tag, next)
+        elif count == 0:
+            yield tag
+        (tag, next, count) = get_next(tag, next)
+
+def get_next(tag, next):
+    tag = next
+    if next is not None:
+        next = next.next_element
+    count = None
+    if tag is not None:
+        if type(tag) == NavigableString:
+            count = 0
+        else:
+            count = len(tag.contents)
+    return (tag, next, count)
 
 def parse_item(page):
     soup = BeautifulSoup(page, "html.parser")
@@ -94,7 +107,7 @@ def parse_item(page):
     #return (hide_string % unique_name) + item_string + "\n\n" #Add hiding.. Shows "GGG forum post. Hover to view.".
     return item_string + "\n\n"
 
-def format_text(child):
+def format_text(child, start_of_line = True):
     if type(child) == NavigableString:
         classes = child.parent["class"]
     else:
@@ -105,13 +118,16 @@ def format_text(child):
     elif "-corrupted" in classes:
         return child.string
     elif "-fire" in classes:
-        return child.string #Should be red, but not possible.
+        return "**%s**" % child.string #Should be red, but not possible.
     elif "-cold" in classes:
-        return child.string #Should be blue, but not possible.
+        return "**%s**" % child.string #Should be blue, but not possible.
     elif "-lightning" in classes:
-        return child.string #Should be yellow, but not possible.
+        return "**%s**" % child.string #Should be yellow, but not possible.
     elif "-mod" in classes: 
-        return "#%s" % child.string
+        if start_of_line: 
+            return "#%s" % child.string
+        else:
+            return "**%s**" % child.string # We can't make blue text in only parts of a line.
     elif "-flavour" in classes: 
         return "*%s*\n>>" % child.string.strip()
     else:
