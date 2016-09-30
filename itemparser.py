@@ -10,7 +10,7 @@ import re
 
 hide_string = "#####&#009;\n\n######&#009;\n\n####&#009;\n\n%s\n\n***\n\n"
 
-def parse_item2(panel):
+def parse_item(panel):
     panel = panel.replace("<br>", "<br/>") #BeautifulSoup does not seem to correctly parse <br>, so we add the /.
     panel = fix_wiki_links(panel)
     soup = BeautifulSoup(panel, "html.parser")
@@ -77,7 +77,7 @@ def get_next(tag, next):
             count = len(tag.contents)
     return (tag, next, count)
 
-def parse_item(page):
+def parse_item_fallback(page):
     soup = BeautifulSoup(page, "html.parser")
     # Find div with class item-box. Only unique items so far..
     itembox = soup.find("div", { "class": "item-box" })
