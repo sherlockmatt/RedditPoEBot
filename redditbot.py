@@ -75,17 +75,18 @@ def build_reply(text):
         print i
         name, link = lookup_name(i)
         if link is None: continue
+        escaped_link = link.replace("(", "\\(").replace(")", "\\)")
         specific_name, panel = get_item_panel(name) # Try the new version first
         if panel is not None:                
             if specific_name != name:
-                reply += "[%s](%s) *(Showing %s)*\n\n" % (name, link, specific_name)
+                reply += "[%s](%s) *(Showing %s)*\n\n" % (name, escaped_link, specific_name)
             else:
-                reply += "[%s](%s)\n\n" % (name, link)
+                reply += "[%s](%s)\n\n" % (name, escaped_link)
             reply += ip.parse_item(panel)
         else: # Fallback to old version
             page = get_page(link)
             if page is None: continue
-            reply += "[%s](%s)\n\n" % (name, link)
+            reply += "[%s](%s)\n\n" % (name, escaped_link)
             reply += ip.parse_item_fallback(page)
     if reply is "": 
         return None        
